@@ -1,0 +1,63 @@
+groups:
+    G1:
+        students_count: 30
+        subgroups: 
+        - 15
+        - 15
+    G2:
+        students_count: 28
+        subgroups:
+        - 14
+        - 14
+
+subjects:
+    G1:
+      - name: Mathematics
+        total_hours: 60
+        lecture_hours: 30
+        practical_hours: 30
+        requires_subgroups: true
+      - name: Physics
+        total_hours: 50
+        lecture_hours: 25
+        practical_hours: 25
+        requires_subgroups: false
+    G2:
+      - name: Chemistry
+        total_hours: 45
+        lecture_hours: 25
+        practical_hours: 20
+        requires_subgroups: false
+      - name: Biology
+        total_hours: 40
+        lecture_hours: 20
+        practical_hours: 20
+        requires_subgroups: true
+
+tutors:
+    Tutor1:
+        subjects: 
+          - Mathematics
+          - Physics
+        can_lecture: true
+        can_practice: true
+        hours_per_week: 1000
+    Tutor2:
+        subjects:
+          - Chemistry
+        can_lecture: true
+        can_practice: false
+        hours_per_week: 1000
+
+classrooms:
+  - num: 101
+    capacity: 35
+  - num: 102
+    capacity: 40
+  - num: 201
+    capacity: 20
+
+semester:
+    weeks: 14
+    max_pairs_per_week: 20
+    pair_duration_hours: 1.5
