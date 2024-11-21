@@ -25,8 +25,8 @@ def generate_data():
         }
         for i in range(1, GROUP_NUM + 1)
     ]
-    lecturers = [{"name": f"Lecturer {i}", "subjects": random.sample([s["name"] for s in subjects], k=4)} for i in range(1, 7)]
-    rooms = [{"name": f"Room {i}", "capacity": random.randint(40, 50)} for i in range(1, 7)]
+    lecturers = [{"name": f"Lecturer {i}", "subjects": random.sample([s["name"] for s in subjects], k=4)} for i in range(1, 12)]
+    rooms = [{"name": f"Room {i}", "capacity": random.randint(40, 50)} for i in range(1, 12)]
     return groups, subjects, lecturers, rooms
 
 
@@ -78,7 +78,7 @@ def initialize_population():
                 for _ in range(total_hours):
                     week = random.randint(0, WEEKS - 1)
                     day = random.choice(DAYS)
-                    time_slot = random.randint(0, TIME_SLOTS - 1)
+                    time_slot = random.randint(1, TIME_SLOTS)
                     schedule.append({
                         "group": group["name"],
                         "subject": subject["name"],
@@ -93,8 +93,33 @@ def initialize_population():
 
 
 def fitness(schedule):
-    _, g, l, r = is_valid_schedule(schedule)
-    return g + l + r
+    is_valid, g, l, r = is_valid_schedule(schedule)
+    score = g + l + r
+
+    if score > 0:
+        group_day_slots = defaultdict(list)
+        for entry in schedule:
+            group_day_slots[(entry['group'], entry['day'])].append(entry['time_slot'])
+
+        for group_day, slots in group_day_slots.items():
+            # Уникнення занять у крайніх слотах
+            if 1 in slots or TIME_SLOTS in slots:
+                score -= len([s for s in slots if s == 1 or s == TIME_SLOTS])
+
+            # Рівномірність розподілу занять протягом тижня
+            score += len(set(slots))  # Чим більше унікальних слотів, тим краще
+
+        # Уникнення однакових предметів поспіль для кожної групи
+        group_subject_sequences = defaultdict(list)
+        for entry in schedule:
+            group_subject_sequences[entry['group']].append(entry['subject'])
+
+        for group, subjects in group_subject_sequences.items():
+            for i in range(len(subjects) - 1):
+                if subjects[i] == subjects[i + 1]:
+                    score -= 1  # Штраф за однакові предмети поспіль
+
+    return score
 
 
 def selection(population):
@@ -265,30 +290,49 @@ def print_table(data_frame):
 
 
 def genetic_algorithm():
-    for i in range(20):
-        print(f'TRY № {i}')
-        population = initialize_population()
-        valid = False
-        for _ in range(MAX_ITERATIONS):
-            new_population = []
-            for _ in range(POPULATION_SIZE // 2):
-                parent1, parent2 = random.sample(selection(population), 2)
-                child = crossover(parent1, parent2)
-                child = mutate(child)
-                new_population.append(child)
-            population.extend(new_population)
-            best_schedule = max(population, key=fitness)
-            valid, *score = is_valid_schedule(best_schedule)
-            print(score)
-            # print_table(pd.DataFrame(best_schedule))
-            if valid:
-                break
-        else:
-            continue
+    valid_schedules = []
+    while (num_v_s := len(valid_schedules)) < 20:
+        print('Valid Schedules generated: ', num_v_s)
+        for i in range(20):
+            # print(f'TRY № {i}')
+            population = initialize_population()
+            valid = False
+            for _ in range(MAX_ITERATIONS):
+                new_population = []
+                for _ in range(POPULATION_SIZE // 2):
+                    parent1, parent2 = random.sample(selection(population), 2)
+                    child = crossover(parent1, parent2)
+                    child = mutate(child)
+                    new_population.append(child)
+                population.extend(new_population)
+                best_schedule = max(population, key=fitness)
+                valid, *score = is_valid_schedule(best_schedule)
+                # print_table(pd.DataFrame(best_schedule))
+                if valid:
+                    valid_schedules.append(best_schedule)
+                    break
+            else:
+                continue
+            break
 
-    print('VALID' if valid else 'NOT VALID')
+    last_valid = best_schedule
+    for _ in range(MAX_ITERATIONS):
+        new_population = valid_schedules
+        for _ in range(POPULATION_SIZE // 2):
+            parent1, parent2 = random.sample(selection(population), 2)
+            child = crossover(parent1, parent2)
+            child = mutate(child)
+            new_population.append(child)
+        population.extend(new_population)
+        best_schedule = max(population, key=fitness)
+        valid, *score = is_valid_schedule(best_schedule)
+        # print_table(pd.DataFrame(best_schedule))
+        if valid:
+            last_valid = best_schedule
+        # print(valid)
+    print('VALID' if is_valid_schedule(last_valid)[0] else 'NOT VALID')
 
-    return best_schedule
+    return last_valid
 
 
 best_schedule = genetic_algorithm()
